@@ -1,0 +1,8 @@
+py4j==0.10.7
+pyspark==2.4.2
+pyspark-stubs==2.4.0.post1
+
+# My additional requirements. Perhaps change the versions of these requirements?
+Flask==0.12.2
+flask-restful==0.3.5
+markdown==2.6.11

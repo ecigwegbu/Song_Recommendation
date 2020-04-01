@@ -1,0 +1,15 @@
+# This is the stuff that would previously go into the docker run command, though we've put into this file now.
+# It appears that this does not need to be in the same directory as the Docker file as the youtube vid on docker-compose by Jake
+# Wright does not have them in the same file
+
+# TODO: Should change this to a more up-to-date version and adapt Dockerfile and this file accordingly
+version: '3.4'
+
+# Check that volumes is correct - it means mount the current directory (.) into usr/src/server
+services:
+  tag_service:
+    build: ./tag_service  # Tell docker compose to build the current directory
+    volumes:
+      - ./tag_service:/usr/src/app
+    ports:
+      - 5000:80

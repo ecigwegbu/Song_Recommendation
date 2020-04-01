@@ -1,0 +1,105 @@
+[
+  {
+    "name": "tagId",
+    "type": "STRING",
+    "description": "UUID for the tag request, persists through retries"
+  },
+  {
+    "name": "created",
+    "type": "TIMESTAMP",
+    "description": "Server Timestamp that the event was generated"
+  },
+  {
+    "name": "installationId",
+    "type": "STRING",
+    "description": "Unique string identifier for the user's installation"
+  },
+  {
+    "name": "geolocation",
+    "type": "RECORD",
+    "description": "Object Containing geolocation information for the tag event derived from the user's ip address at the time of tagging",
+    "fields": [
+      {
+        "name": "latitude",
+        "type": "FLOAT",
+        "description": "The latitude associated with the user's ip address, truncated to 2 decimal places"
+      },
+      {
+        "name": "longitude",
+        "type": "FLOAT",
+        "description": "The longitude associated with the user's ip address, truncated to 2 decimal places"
+      },
+      {
+        "name": "region",
+        "type": "RECORD",
+        "description": "Object Containing information about the region associated with the ip address",
+        "fields": [
+          {
+            "name": "locality",
+            "type": "STRING",
+            "description": "The locality associated with the user's ip address (city, town etc)"
+          },
+          {
+            "name": "countryCode",
+            "type": "STRING",
+            "description": "The value is an ISO-3166, two-letter code for the country associated with the ip address"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "matchCategory",
+    "type": "STRING",
+    "description": "The match category, this is MUSIC/SFTV/LIVE/ADU/MOVIES/CONTEXT"
+  },
+  {
+    "name": "signatureLength",
+    "type": "INTEGER",
+    "description": "The length of a signature from the tag request, in milliseconds"
+  },
+  {
+    "name": "match",
+    "type": "RECORD",
+    "description": "Object containing details about the primary matched track",
+    "fields": [
+      {
+        "name": "track",
+        "type": "RECORD",
+        "description": "Object containing details about the primary matched track",
+        "fields": [
+          {
+            "name": "id",
+            "type": "STRING",
+            "description": "The Shazam track ID that got returned to the user",
+          },
+          {
+            "name": "adamId",
+            "type": "STRING",
+            "description": "The corresponding Apple track ID that got returned to the user",
+          },
+          {
+            "name": "metadata",
+            "type": "RECORD",
+            "description": "Metadata from the matched track",
+            "fields": [
+              {
+                "name": "artistName",
+                "type": "STRING"
+              },
+              {
+                "name": "trackTitle",
+                "type": "STRING"
+              }
+            ]
+          },
+          {
+            "name": "offset",
+            "type": "FLOAT",
+            "description": "Time elapsed in the track where the signature in the tag request starts, in milliseconds"
+          }
+        ]
+      }
+    ]
+  }
+]
