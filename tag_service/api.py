@@ -1,147 +1,114 @@
-# TODO: Implement a server that can be queried over a network.
-# This server will store Shazam tag data
-# Think about how this server will be queried.
-# Perhaps make a REST API
-# So client (app.py) makes JSON request to API
-# Then this server (server.py) makes SQL query for relevant information
-# Then server returns result of query to client
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import desc
-
 from flask import Flask
-from flask_restful import Resource, Api  # Is this line needed?
-
+from flask_restful import Resource, Api
 import json
-# import markdown
-import os  # WHY do we import this?
-
-# This is the application factory function
-# def create_tag_server():
-#     server = Flask(__name__)
-
-# @server.route("/")
-# def index():
-#     """Present some documentation."""
-
-#     # Open the README file
-#     # with open(os.path.dirname(server.route_path) + 'README.md', 'r') as markdown_file"
-
-#         # Read the content of the file
-#         # content = markdown_file.read()
-
-#         # Convert to HTML
-#         # return markdown.markdown
-        
-#     content = "Hello world!"
-
-#     Convert to HTML
-#     return markdown.markdown
+import requests
+import pycurl
+import re  # regex
 
 app = Flask(__name__)
 api = Api(app)
+apple_api_token = ("eyJraWQiOiI0QTU3OU1DSldSIiwiYWxnIjoiRVMyNTYifQ"
+                ".eyJpc3MiOiI0R1dEQkNGNUE0IiwiaWF0IjoxNTg1NjUzM"
+                "TYyLCJleHAiOjE1ODYyNTc5NjJ9.km5ZnfszcUipLh-Z3a"
+                "aVT47vTevGUxGogg1Gk3fKemnMY6e3rJSdL-T6K8dUkAW7"
+                "pN1l_1fChShxL9z6KMfv-Q")
 
-# class SetUp():
-#     def tag_table(self):
-#         spark = SparkSession \
-#             .builder \
-#             .appName("TagStream") \
-#             .master("local[2]") \
-#             .getOrCreate()
-#         df = spark.read.json('data/tags.data')
-#         df.registerTempTable('tag_table')
-#         return spark
-#         # TODO: Should I use global variable here or return df?
+class User(Resource):
+    """Process requests for user data."""
+
+    def get(self, user_id, num_recent_tags):
+        print("user_id:", user_id)
+        print("num_recent_tags:", num_recent_tags)
+        user_tag_table = spark.sql(("SELECT * " 
+                            "FROM tag_table "
+                            "WHERE installationId='{0}' "
+                            "ORDER BY created DESC "
+                            "LIMIT {1}").format(user_id, num_recent_tags))
+        print("JSON:",user_tag_table.toJSON().collect())
+        return user_tag_table.toJSON().collect(), 200
 
 class Recommend(Resource):
-    # def get(self):
-        # return {
-        #     'result': 'The API get request is working!'
-        # }
-        # spark = SparkSession \
-        #     .builder \
-        #     .appName("TagStream") \
-        #     .master("local[2]") \
-        #     .getOrCreate()
+    """Process song recommendation requests."""
 
-        # tags = spark.read.json("data/tags.data")
+    def get(self, track_id, artist, num_recommendations, recommendation_type):
+        # TESTING
+        # track_id = '900032829'
+        # song_search = requests.get("https://api.music.apple.com/v1/catalog/us/songs/{0}".format(track_id),
+        #                             headers={'Authorization': 'Bearer {0}'.format(apple_api_token)})
+        # print("contents:", song_search.content)
+        # print("headers:", song_search.headers)
+        # print("response code:", song_search.status_code)
+        # return song_search.json()
 
-        # tags\
-        #     .select("match.track.id") \
-        #     .groupBy("id") \
-        #     .count() \
-        #     .orderBy(desc("count")) \
-        #     .show(10)
-
-        # return {
-        #     'result': 'The API get request is working!'
-        # }
-        # f=open("data/single_tag.data", "r")
-        # tag = f.read()
-        # tag = json.loads(tag)
-        # return tag
-
-    def get(self, artist, num_recommendations):
+        # MORE TESTING
+        # track_id = '900032829'
+        # print('here')
+        # song_json = requests.get("https://api.music.apple.com/v1/catalog/us/songs/{0}".format(track_id),
+        #                             headers={'Authorization': 'Bearer {0}'.format(apple_api_token)}).json()
+        # song_dict = json.loads(song_json)
+        # print("song_json:", song_json)
+        # print("\nsong_dict:", song_dict)
+        # print('here now')
+        # url = song_json['data']['attributes']['url']
+        # match = re.search("album/.+?/(.+)\\?")
+        # if match:
+        #     album_id = match.group(1)
+        # print("\n\nalbum_id:\n\n", album_id)
+        # return
         print("artist", artist)
         print("num_recommendations", num_recommendations)
-        # try:
-        recommended_tracks = self._make_recommendation(artist, num_recommendations)
-        # except Exception:
-            # return 404  # Figure out what correct code is
+        print("recommendation_type", recommendation_type)
+        recommended_tracks = self._make_recommendation(track_id, artist, num_recommendations, recommendation_type)
         return recommended_tracks, 200
-        # can -ve number be used in sql limit without error?
-    
-    # def _obtain_data():
-    #     # create spark session
-    #     spark = SparkSession \
-    #         .builder \
-    #         .appName("TagStream") \
-    #         .master("local[2]") \
-    #         .getOrCreate()
 
-    #     df = spark.read.json('data/tags.data')
-    #     df.registerTempTable('tag_table')
 
-    def _make_recommendation(self, artist, num_recommendations):
-        # Filter dataset for ids of recommended tracks
-        # Sort in descending order number of tags made for songs by artist
-        filtered_table = spark.sql(("SELECT COUNT(tagId), match.track.id " 
-                                    "FROM tag_table "
-                                    "WHERE match.track.metadata.artistName='{0}' "
-                                    "GROUP BY match.track.id "
-                                    "ORDER BY COUNT(tagId) DESC "
-                                    "LIMIT {1}").format(artist, num_recommendations))
+    def _make_recommendation(self, track_id, artist, num_recommendations, recommendation_type):
+        """Make song recommendations for the user."""
 
-        # Get list of rows
-        rows = filtered_table.collect()
-        recommended_tracks = []
-        for row in rows:
-            recommended_tracks.append(row['id'])
+        if recommendation_type == 'other_song':
+            # Filter tag data for the most Shazamed song titles by the same artist
+            filtered_table = spark.sql(("SELECT match.track.metadata.trackTitle " 
+                                        "FROM tag_table "
+                                        "WHERE match.track.metadata.artistName='{0}' "
+                                        "AND match.track.id!='{1}' "
+                                        "GROUP BY match.track.metadata.trackTitle "
+                                        "ORDER BY COUNT(tagId) DESC "
+                                        "LIMIT {2}").format(artist, track_id, num_recommendations))
+            print("\nfiltered_table:",filtered_table.collect())
 
-        return recommended_tracks
+        # EXTENSION: IMPLEMENTATION INCOMPLETE
+        # if recommendation_type == 'other_album':
+        #     # Need apple API for this
+        #     # Filter tag data for Shazams for recently released albums.
+        #     track_id = '900032829'
+        #     song_json = json.loads(requests.get("https://api.music.apple.com/v1/catalog/us/songs/{0}".format(track_id),
+        #                                headers={'Authorization': 'Bearer {0}'.format(apple_api_token)}).json())
+        #     url = song_json['data']['attributes']['url']
+        #     match = re.search("album/.+?/(.+)\\?")
+        #     if match:
+        #         album_id = match.group(1)
+        #     album_search = json.loads(requests.get("https://api.music.apple.com/v1/catalog/us/songs/{0}".format(track_id),
+        #                                headers={'Authorization': 'Bearer {0}'.format(apple_api_token)}).json())
+        #     r = requests.get(("https://api.music.apple.com/v1/catalog/us/search?term={0}&limit=1&types=albums").format(album_id),
+        #                      headers={'Authorization': ('access_token {0}').format(apple_api_token)})
 
-api.add_resource(Recommend, '/recommend/<string:artist>&<int:num_recommendations>')
+        return filtered_table.toJSON().collect()
+
+api.add_resource(Recommend, '/recommend/<string:track_id>&<string:artist>&<int:num_recommendations>&<string:recommendation_type>')
+api.add_resource(User, '/user/<string:user_id>&<int:num_recent_tags>')
 
 if __name__ == '__main__':
-    # perform setup first
-    # TODO: should this code go into the API thing? Need to learn how to make API
-    # spark = SparkSession \
-    #     .builder \
-    #     .appName("TagStream") \
-    #     .master("local[2]") \
-    #     .getOrCreate()
 
-    # df = spark.read.json('data/tags.data')
-    # df.registerTempTable('tag_table')
-
-    # spark = SetUp().tag_table()
+    # Set up spark session for sql query functionality
     spark = SparkSession \
         .builder \
         .appName("TagStream") \
         .master("local[2]") \
         .getOrCreate()
-    df = spark.read.json('data/tags.data')
+    df = spark.read.json('tag_service/data/tags.data')
     df.registerTempTable('tag_table')
 
-    # run api
-    # app.run(host='0.0.0.0', port=80, debug=True)
+    # Listen on port 5000
     app.run(host='0.0.0.0', port=5000, debug=True)

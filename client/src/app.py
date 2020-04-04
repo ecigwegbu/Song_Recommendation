@@ -1,34 +1,106 @@
 from pyspark.sql import SparkSession
+import json
+import requests
+from cmd import Cmd
+from random import seed
+from random import randint
+import os
+from error_messages import Error, Notice
 
-# The goal of this app is to find out what others are 'Shazaming' that you might like - this tells you what songs other people are discovering.
-# It is a metric of song discovery popularity
-# You should sign in as a user
-# The database of tags should be online
-# Then, you, the user of the app asks for a recommendation and you specify the type of recommendation you are looking for
-#       songs from same album, songs from the same genre, songs that the same artist featured in
-#       Remember that these are not just songs pulled out of the Apple catalogue. They are songs that are currenlty being popularly 'Shazamed'
+class Program(Cmd):
 
-class App:
-    """Program starts here."""
-
-    # TODO: Sam had the idea of using a ranking-style system from 4F13 to get the most popular songs. Consider this idea.
-    # TODO: I've decided this app should belong to a single user, so tags should not be stored locally. Perhaps I should
-    # implement a server that acts as the store for the tags and the user. This app is the client.
-    # TODO: Do I need to implement a clean and shiny front-end or should I make this a command-line application? wxPython desktop GUI? How about a web frontend on a browser?
-    # NOTE: I should make this app really good so that I can add it to my portfolio. Kill two birds with one stone.
     def __init__(self):
-        # tags = {}
-        # users = {}
+        # TODO: Resolve forward-slash escape issue
+        self.user_id = "P0xE3q64kMjojjb4UuIlLJqSupFl431XIjoYZrmX7Sd4F4oh29hDDVw0iuAN5uEhrOcNFJg9Z0mBj8UAlWd2Tw=="
+        seed()  # seed the random number generator with the system time
+        self.user_tag_data = None
+        super().__init__()
 
-    # def add_user(self, user_id):
-    #     """Add user to the record."""
+    def do_exit(self, inp):
+        """Exit the program."""
+        print("Bye")
+        return True
 
-    # def add_tag(self, tag_id):
-    #     """Add tag to the record."""
+    def do_get_recent_Shazams(self, inp):
+        """Download your recent Shazams
+        Use format: get_recent_Shazams <num_Shazams>"""
 
-    def make_recommendation(self, user_id, type):
-        """
-        Recommend a song to user given by user_id.
-        :param user_id: String identifier of the user
-        :param type: String representing type of recommendation to make
-        """
+        # num_most_recent_tags = 5
+        inp_list = inp.split(" ")
+        if len(inp_list) != 1:
+            print(Error.invalid_tag_fetch)
+            return
+
+        try:
+            num_recent_tags = inp.split(" ")[0]
+            if not float(num_recent_tags).is_integer():
+                print(Error.invalid_num_tags)
+                return
+            elif int(num_recent_tags) < 0:
+                print(Error.invalid_num_tags)
+                return
+            else:
+
+                # TODO: EXTENSION: Change this such that you add more to user tag data rather than changing it
+                self.user_tag_data = requests.get(('http://localhost:5000/user/{0}&{1}').format(self.user_id, num_recent_tags)).json()
+                print(self.user_tag_data)
+        except Exception:
+            print(Error.invalid_tag_fetch)
+            return
+
+
+    def do_make_recommendation(self, inp):
+        """Get recommendation for song based on your Shazams.
+        Use Format: make_recommendation <other_song|other_album> <num_recommendations>
+        Note: The other_album is an extension feature that has not yet been fully implemented."""
+
+        if self.user_tag_data is None:
+            print(Notice.no_user_tags)
+            return
+
+        rand_tag = self._rand_user_tag()
+        artist = rand_tag['match']['track']['metadata']['artistName']
+        track_id = rand_tag['match']['track']['id']
+
+        try:
+            (recommendation_type, num_recommendations) = inp.split(" ")
+        except Exception:
+            print(Error.recommendation_syntax)
+            return
+
+        try:
+            if not (recommendation_type=='other_song'): # TODO: EXTENSION ... or recommendation_type=='other_album'):
+                print(Error.unrecognised_recommendation)
+                return
+            if not float(num_recommendations).is_integer():
+                print(Error.invalid_num_recommendations)
+                return
+            elif int(num_recommendations) < 0:
+                print(Error.invalid_num_recommendations)
+                return
+            else:
+                recommended_tags = requests.get(('http://localhost:5000/recommend/{0}&{1}&{2}&{3}').format(track_id, artist, num_recommendations, recommendation_type)).json()
+                print("\nSongs recommended just for you:")
+                for tag in recommended_tags:
+                    print(json.loads(tag)['trackTitle'])  # Should there be a newline here?
+        except Exception:
+            print(Error.recommendation_syntax)
+            return
+
+    def _rand_user_tag(self):
+        num_tags = len(self.user_tag_data)
+        tags = self.user_tag_data
+        return json.loads(self.user_tag_data[randint(0,num_tags-1)])
+
+    # EXTENSION: Implementation not complete
+    # def do_recommendation_history(self, inp):
+    #     """Show the user a history of the recommendations they were made.
+    #     Use the format: recommendation_history"""
+    #     # TODO
+    #     # If item already in recommendation history then be sure not to add it again
+    #     pass
+
+
+if __name__ == "__main__":
+
+    Program().cmdloop()

@@ -1,8 +1,5 @@
 run:
-	python client/src/main.py
+	python client/src/app.py
 
-test:
-	python client/src/test.py
-
-api:
+server:
 	python tag_service/api.py
