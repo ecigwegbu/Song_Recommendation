@@ -32,3 +32,5 @@ Python will be used.
 - Activate the virtual environment using `source .venv/bin/activate'
 - Install requirements using 'pip install -r requirements.txt' in the root directory. 
 - In a terminal enter `make server' to start the tag server. Then in a separate tab enter 'make run' to start the client app.
+
+**This Version is courtesy of Elias Igwegbu**
