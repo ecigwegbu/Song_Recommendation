@@ -33,4 +33,4 @@ Python will be used.
 - Install requirements using 'pip install -r requirements.txt' in the root directory. 
 - In a terminal enter `make server' to start the tag server. Then in a separate tab enter 'make run' to start the client app.
 
-**This Version is courtesy of Elias Igwegbu**
+**This Version is courtesy of Elias Igwegbu, MannedModule Inc**
